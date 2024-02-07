@@ -1,85 +1,46 @@
 <script setup>
-import {ref} from 'vue'
+  // Función: Identificar al cliente y mostrar la barra de navegación para las diferentes vistas.
+  import { RouterLink, RouterView } from 'vue-router'
+  import {ref} from 'vue';
+  import ValidarUsuario from './components/ValidarUsuario.vue'
 
-import AgregarProducto from './components/AgregarProducto.vue';
-import EliminarProducto from './components/EliminarProducto.vue';
-import MostrarProductos from './components/MostrarProductos.vue';
+  // Almacén con los datos de todos los clientes.
+  import {useClientesStore} from './stores/clientes';
+  const clientesStore = useClientesStore();
 
-const opciones = {
-  AgregarProducto,
-  EliminarProducto
-};
+  // Usuario que quiere acceder a la aplicación.
+  const usuario = ref(null);
 
-const seleccion = ref('AgregarProducto');
 
-const lista = ref([]);
-const datosAlmacenados = JSON.parse(localStorage.getItem('listaCompra'));
-if (datosAlmacenados != null)
-  lista.value = datosAlmacenados;
-
-function realizarOperacion(obj){
-  switch (seleccion.value)
+  function fValidar(obj)
   {
-    case 'AgregarProducto':
-      const productoAgregar = lista.value.find(producto => producto.nombre == obj.nombre);
-      if (!productoAgregar)
-      {
-        lista.value.push(obj)
-      }
-      else
-      {
-        // Sumar unidades
-        productoAgregar.unidades += obj.unidades
-      }
-        
-      actualizarAlmacenamiento();
-      break;
-    case 'EliminarProducto':
-      const productoEliminar = lista.value.find(producto => producto.nombre == obj.nombre);
-      if (productoEliminar)
-      {
-        const pos = lista.value.indexOf(productoEliminar);
-        lista.value.splice(pos,1);
-      }
-      actualizarAlmacenamiento();
-      break;
+    // A través del función fUnCliente del almacén, comprobar que hay uno con ese id y esa contraseña.
+    clientesStore.fUnCliente(obj);
+    usuario.value = clientesStore.unCliente;
+    if (usuario.value == null)
+      alert("Usuario y/o contraseña no válido");
+    else
+      guardarLS();
   }
-}
 
-function actualizarAlmacenamiento()
-{
-  localStorage.setItem("listaCompra",JSON.stringify(lista.value));
-}
-
-// Número de productos a los que se ha cambiado el número de unidades.
-const nroProductos = ref(0);
-
-function sumar()
-{
-  nroProductos.value++;
-}
-
-function fVacia()
-{
-  nroProductos.value=0;
-}
+  function guardarLS(){
+    localStorage.setItem('idCliente',usuario.value.id);
+  }
 </script>
 
 <template>
-  <h2>Operaciones sobre la lista de la compra.</h2>
-  <br>
-  <button id="agregar" @click="seleccion='AgregarProducto'">Agregar un producto a la lista de la compra</button>
-  <br>
-  <button id="eliminar" @click="seleccion='EliminarProducto'">Eliminar un producto de la lista de la compra</button>
-  
-  <div>
-    <component :is="opciones[seleccion]" @realizar="realizarOperacion" @cambiar="sumar"></component>
-    
-    <MostrarProductos v-if="lista.length != 0" :lista="lista" :nro="nroProductos" @vacia="fVacia">
-    </MostrarProductos>
-  </div>
+  <header>
+    <ValidarUsuario v-if="usuario == null" @validarUsuario="fValidar"></ValidarUsuario>
+    <h2 v-else >Bienvenidx</h2>
+    <nav>
+        <RouterLink to="/">Home</RouterLink>
+        <RouterLink to="/consultas">Consultas</RouterLink>
+        <RouterLink to="/transacciones">Transacciones</RouterLink>
+      </nav>
+  </header>
+
+  <RouterView />
 </template>
 
 <style scoped>
-
 </style>
